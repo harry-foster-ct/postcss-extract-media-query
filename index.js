@@ -79,8 +79,8 @@ module.exports = postcss.plugin('postcss-extract-media-query', opts => {
     
                 if (queryname) {
                     const css = postcss.root().append(atRule).toString();
-    
-                    addMedia(queryname, css, query);
+                    //CT Custom - Add Media by CSS file name not query name
+                    addMedia(name, css, query);
                     atRule.remove();
                 }
             });
@@ -91,31 +91,32 @@ module.exports = postcss.plugin('postcss-extract-media-query', opts => {
         // gather promises only if output.path specified because otherwise
         // nothing has been extracted
         if (opts.output.path) {
-            Object.keys(media).forEach(queryname => {
-                promises.push(new Promise(resolve => {
-                    let { css } = getMedia(queryname);
-                    const newFile = opts.output.name
-                                    .replace(/\[name\]/g, name)
-                                    .replace(/\[query\]/g, queryname)
-                                    .replace(/\[ext\]/g, ext);
-                    const newFilePath = path.join(opts.output.path, newFile);
-                    const newFileDir = path.dirname(newFilePath);
+            //CT Custom - Removed loop over media queries
+            promises.push(new Promise(resolve => {
+                //CT Custom - Build files by file name
+                let { css } = getMedia(name);
+                const newFile = opts.output.name
+                                .replace(/\[name\]/g, name)
+                                //CT Custom - Name Output Files Desktop
+                                .replace(/\[query\]/g, 'desktop')
+                                .replace(/\[ext\]/g, ext);
+                const newFilePath = path.join(opts.output.path, newFile);
+                const newFileDir = path.dirname(newFilePath);
 
-                    plugins.applyPlugins(css, newFilePath).then(css => {
+                plugins.applyPlugins(css, newFilePath).then(css => {
 
-                        if (!fs.existsSync(path.dirname(newFilePath))) {
-                            // make sure we can write
-                            fs.mkdirSync(newFileDir, { recursive: true });
-                        }
-                        fs.writeFileSync(newFilePath, css);
-        
-                        if (opts.stats === true) {
-                            console.log(green('[extracted media query]'), newFile);
-                        }
-                        resolve();
-                    });
-                }));
-            });
+                    if (!fs.existsSync(path.dirname(newFilePath))) {
+                        // make sure we can write
+                        fs.mkdirSync(newFileDir, { recursive: true });
+                    }
+                    fs.writeFileSync(newFilePath, css);
+    
+                    if (opts.stats === true) {
+                        console.log(green('[extracted media query]'), newFile);
+                    }
+                    resolve();
+                });
+            }));
         }
 
         return Promise.all(promises);
